@@ -38,7 +38,8 @@ static std::string usage_message =
     "  -s N, --start=N\n"
     "                 Starting point to solve problem. This is the index of the "
     "                 state to start to explore the state space. In case the given"
-    "                 number is zero, then the start state will be assigned randomly.\n"
+    "                 number is zero, then the start state will be assigned to a "
+    "                 random number.\n"
     ;
 
 void print_usage() {
@@ -58,11 +59,11 @@ int main(int argc, char* argv[]) {
             {"host",     required_argument, 0, 'h'},
             {"port",     required_argument, 0, 'p'},
             {"problem",  required_argument, 0, 'm'},
-            {"start",  required_argument, 0, 's'},
+            {"start",    required_argument, 0, 's'},
             {0, 0, 0, 0}
         };
         int option_index = 0;
-        c = getopt_long(argc, argv, "h:p:m:", long_options, &option_index);
+        c = getopt_long(argc, argv, "h:p:m:s:", long_options, &option_index);
         if(c == -1) {
             break;
         }
@@ -92,8 +93,11 @@ int main(int argc, char* argv[]) {
         print_usage();
         return -1;
     }
-    marl::agent a{problem_path, start_state};
+    marl::agent a;
+    a.initialize(problem_path, start_state);
     a.connect(host, port);
     a.start();
+    a.wait();
+    a.stop();
     return 0;
 }

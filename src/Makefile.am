@@ -22,20 +22,20 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 AM_CXXFLAGS = --pedantic -Wall -Werror
 
-bin_PROGRAMS = marl-server
+bin_PROGRAMS = marl-agent
 
-marl_server_CPPFLAGS = \
+marl_agent_CPPFLAGS = \
     $(MARL_PROTOCOLS_CFLAGS) \
     $(FLOG_CFLAGS) \
     $(CPNET_CFLAGS)
 
-marl_server_LDADD = \
+marl_agent_LDADD = \
     -lpthread \
     $(MARL_PROTOCOLS_LIBS) \
     $(FLOG_LIBS) \
     $(CPNET_LIBS)
 
-marl_server_SOURCES = \
+marl_agent_SOURCES = \
     agent.cpp \
     agent.hpp \
     q-table.cpp \

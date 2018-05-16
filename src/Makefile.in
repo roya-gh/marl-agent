@@ -104,7 +104,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = marl-server$(EXEEXT)
+bin_PROGRAMS = marl-agent$(EXEEXT)
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx.m4 \
@@ -119,11 +119,11 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_marl_server_OBJECTS = marl_server-agent.$(OBJEXT) \
-	marl_server-q-table.$(OBJEXT) marl_server-main.$(OBJEXT)
-marl_server_OBJECTS = $(am_marl_server_OBJECTS)
+am_marl_agent_OBJECTS = marl_agent-agent.$(OBJEXT) \
+	marl_agent-q-table.$(OBJEXT) marl_agent-main.$(OBJEXT)
+marl_agent_OBJECTS = $(am_marl_agent_OBJECTS)
 am__DEPENDENCIES_1 =
-marl_server_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+marl_agent_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -170,8 +170,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(marl_server_SOURCES)
-DIST_SOURCES = $(marl_server_SOURCES)
+SOURCES = $(marl_agent_SOURCES)
+DIST_SOURCES = $(marl_agent_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -300,18 +300,18 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 AM_CXXFLAGS = --pedantic -Wall -Werror
-marl_server_CPPFLAGS = \
+marl_agent_CPPFLAGS = \
     $(MARL_PROTOCOLS_CFLAGS) \
     $(FLOG_CFLAGS) \
     $(CPNET_CFLAGS)
 
-marl_server_LDADD = \
+marl_agent_LDADD = \
     -lpthread \
     $(MARL_PROTOCOLS_LIBS) \
     $(FLOG_LIBS) \
     $(CPNET_LIBS)
 
-marl_server_SOURCES = \
+marl_agent_SOURCES = \
     agent.cpp \
     agent.hpp \
     q-table.cpp \
@@ -394,9 +394,9 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-marl-server$(EXEEXT): $(marl_server_OBJECTS) $(marl_server_DEPENDENCIES) $(EXTRA_marl_server_DEPENDENCIES) 
-	@rm -f marl-server$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(marl_server_OBJECTS) $(marl_server_LDADD) $(LIBS)
+marl-agent$(EXEEXT): $(marl_agent_OBJECTS) $(marl_agent_DEPENDENCIES) $(EXTRA_marl_agent_DEPENDENCIES) 
+	@rm -f marl-agent$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(marl_agent_OBJECTS) $(marl_agent_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -404,9 +404,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/marl_server-agent.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/marl_server-main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/marl_server-q-table.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/marl_agent-agent.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/marl_agent-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/marl_agent-q-table.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -424,47 +424,47 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-marl_server-agent.o: agent.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_server-agent.o -MD -MP -MF $(DEPDIR)/marl_server-agent.Tpo -c -o marl_server-agent.o `test -f 'agent.cpp' || echo '$(srcdir)/'`agent.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_server-agent.Tpo $(DEPDIR)/marl_server-agent.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='agent.cpp' object='marl_server-agent.o' libtool=no @AMDEPBACKSLASH@
+marl_agent-agent.o: agent.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_agent-agent.o -MD -MP -MF $(DEPDIR)/marl_agent-agent.Tpo -c -o marl_agent-agent.o `test -f 'agent.cpp' || echo '$(srcdir)/'`agent.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_agent-agent.Tpo $(DEPDIR)/marl_agent-agent.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='agent.cpp' object='marl_agent-agent.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_server-agent.o `test -f 'agent.cpp' || echo '$(srcdir)/'`agent.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_agent-agent.o `test -f 'agent.cpp' || echo '$(srcdir)/'`agent.cpp
 
-marl_server-agent.obj: agent.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_server-agent.obj -MD -MP -MF $(DEPDIR)/marl_server-agent.Tpo -c -o marl_server-agent.obj `if test -f 'agent.cpp'; then $(CYGPATH_W) 'agent.cpp'; else $(CYGPATH_W) '$(srcdir)/agent.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_server-agent.Tpo $(DEPDIR)/marl_server-agent.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='agent.cpp' object='marl_server-agent.obj' libtool=no @AMDEPBACKSLASH@
+marl_agent-agent.obj: agent.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_agent-agent.obj -MD -MP -MF $(DEPDIR)/marl_agent-agent.Tpo -c -o marl_agent-agent.obj `if test -f 'agent.cpp'; then $(CYGPATH_W) 'agent.cpp'; else $(CYGPATH_W) '$(srcdir)/agent.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_agent-agent.Tpo $(DEPDIR)/marl_agent-agent.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='agent.cpp' object='marl_agent-agent.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_server-agent.obj `if test -f 'agent.cpp'; then $(CYGPATH_W) 'agent.cpp'; else $(CYGPATH_W) '$(srcdir)/agent.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_agent-agent.obj `if test -f 'agent.cpp'; then $(CYGPATH_W) 'agent.cpp'; else $(CYGPATH_W) '$(srcdir)/agent.cpp'; fi`
 
-marl_server-q-table.o: q-table.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_server-q-table.o -MD -MP -MF $(DEPDIR)/marl_server-q-table.Tpo -c -o marl_server-q-table.o `test -f 'q-table.cpp' || echo '$(srcdir)/'`q-table.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_server-q-table.Tpo $(DEPDIR)/marl_server-q-table.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='q-table.cpp' object='marl_server-q-table.o' libtool=no @AMDEPBACKSLASH@
+marl_agent-q-table.o: q-table.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_agent-q-table.o -MD -MP -MF $(DEPDIR)/marl_agent-q-table.Tpo -c -o marl_agent-q-table.o `test -f 'q-table.cpp' || echo '$(srcdir)/'`q-table.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_agent-q-table.Tpo $(DEPDIR)/marl_agent-q-table.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='q-table.cpp' object='marl_agent-q-table.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_server-q-table.o `test -f 'q-table.cpp' || echo '$(srcdir)/'`q-table.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_agent-q-table.o `test -f 'q-table.cpp' || echo '$(srcdir)/'`q-table.cpp
 
-marl_server-q-table.obj: q-table.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_server-q-table.obj -MD -MP -MF $(DEPDIR)/marl_server-q-table.Tpo -c -o marl_server-q-table.obj `if test -f 'q-table.cpp'; then $(CYGPATH_W) 'q-table.cpp'; else $(CYGPATH_W) '$(srcdir)/q-table.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_server-q-table.Tpo $(DEPDIR)/marl_server-q-table.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='q-table.cpp' object='marl_server-q-table.obj' libtool=no @AMDEPBACKSLASH@
+marl_agent-q-table.obj: q-table.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_agent-q-table.obj -MD -MP -MF $(DEPDIR)/marl_agent-q-table.Tpo -c -o marl_agent-q-table.obj `if test -f 'q-table.cpp'; then $(CYGPATH_W) 'q-table.cpp'; else $(CYGPATH_W) '$(srcdir)/q-table.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_agent-q-table.Tpo $(DEPDIR)/marl_agent-q-table.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='q-table.cpp' object='marl_agent-q-table.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_server-q-table.obj `if test -f 'q-table.cpp'; then $(CYGPATH_W) 'q-table.cpp'; else $(CYGPATH_W) '$(srcdir)/q-table.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_agent-q-table.obj `if test -f 'q-table.cpp'; then $(CYGPATH_W) 'q-table.cpp'; else $(CYGPATH_W) '$(srcdir)/q-table.cpp'; fi`
 
-marl_server-main.o: main.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_server-main.o -MD -MP -MF $(DEPDIR)/marl_server-main.Tpo -c -o marl_server-main.o `test -f 'main.cpp' || echo '$(srcdir)/'`main.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_server-main.Tpo $(DEPDIR)/marl_server-main.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='main.cpp' object='marl_server-main.o' libtool=no @AMDEPBACKSLASH@
+marl_agent-main.o: main.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_agent-main.o -MD -MP -MF $(DEPDIR)/marl_agent-main.Tpo -c -o marl_agent-main.o `test -f 'main.cpp' || echo '$(srcdir)/'`main.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_agent-main.Tpo $(DEPDIR)/marl_agent-main.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='main.cpp' object='marl_agent-main.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_server-main.o `test -f 'main.cpp' || echo '$(srcdir)/'`main.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_agent-main.o `test -f 'main.cpp' || echo '$(srcdir)/'`main.cpp
 
-marl_server-main.obj: main.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_server-main.obj -MD -MP -MF $(DEPDIR)/marl_server-main.Tpo -c -o marl_server-main.obj `if test -f 'main.cpp'; then $(CYGPATH_W) 'main.cpp'; else $(CYGPATH_W) '$(srcdir)/main.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_server-main.Tpo $(DEPDIR)/marl_server-main.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='main.cpp' object='marl_server-main.obj' libtool=no @AMDEPBACKSLASH@
+marl_agent-main.obj: main.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT marl_agent-main.obj -MD -MP -MF $(DEPDIR)/marl_agent-main.Tpo -c -o marl_agent-main.obj `if test -f 'main.cpp'; then $(CYGPATH_W) 'main.cpp'; else $(CYGPATH_W) '$(srcdir)/main.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/marl_agent-main.Tpo $(DEPDIR)/marl_agent-main.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='main.cpp' object='marl_agent-main.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_server_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_server-main.obj `if test -f 'main.cpp'; then $(CYGPATH_W) 'main.cpp'; else $(CYGPATH_W) '$(srcdir)/main.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(marl_agent_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o marl_agent-main.obj `if test -f 'main.cpp'; then $(CYGPATH_W) 'main.cpp'; else $(CYGPATH_W) '$(srcdir)/main.cpp'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique

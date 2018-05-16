@@ -20,15 +20,29 @@
 
 #include <marl-protocols/client-base.hpp>
 #include "q-table.hpp"
+#include <marl-protocols/state.hpp>
 
 namespace marl {
 class agent : public client_base {
 public:
-    agent(uint32_t id = 0);
-    response_base* process_request(const request_base* const) override;
-    response_base* process_action_select(const request_base* const);
+    agent();
+    action_select_rsp process_request(const action_select_req&) override;
+    //response_base* process_request(const request_base* const) override;
+    //response_base* process_action_select(const request_base* const);
     //response_base* process_update_table(const request_base* const);
+    void set_ask_treshold(float value);
+    float ask_treshold() const;
+protected:
+    void run() override;
+    // Helper functions
+    float q(state* s, action* a) const;
+    float q(uint32_t s, uint32_t a) const;
 private:
     qtable_t m_q_table;
+    state_stats_t m_visits;
+    float m_ask_treshold;
+    float m_tau;
+    marl::state* m_current_state;
+    uint32_t m_request_sequence;
 };
 }
