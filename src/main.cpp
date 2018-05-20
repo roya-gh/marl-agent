@@ -35,6 +35,8 @@ static std::string usage_message =
     "                 port number of server's main control connection (tcp).\n"
     "  -m PATH, --problem=PATH\n"
     "                 file name of the markov decision problem in mdpx format.\n"
+    "  -a N, --agent-id=N\n"
+    "                 Agent ID. Must be unique between all connectiong agents.\n"
     "  -s N, --start=N\n"
     "                 Starting point to solve problem. This is the index of the "
     "                 state to start to explore the state space. In case the given"
@@ -52,18 +54,20 @@ int main(int argc, char* argv[]) {
     uint16_t port = 0;
     std::string problem_path;
     uint32_t start_state = 0;
+    uint32_t id = 0;
     int c;
-    std::bitset<4> args;
+    std::bitset<5> args;
     while(true) {
         static struct option long_options[] = {
             {"host",     required_argument, 0, 'h'},
             {"port",     required_argument, 0, 'p'},
             {"problem",  required_argument, 0, 'm'},
+            {"agent-id", required_argument, 0, 'a'},
             {"start",    required_argument, 0, 's'},
             {0, 0, 0, 0}
         };
         int option_index = 0;
-        c = getopt_long(argc, argv, "h:p:m:s:", long_options, &option_index);
+        c = getopt_long(argc, argv, "h:p:m:s:a:", long_options, &option_index);
         if(c == -1) {
             break;
         }
@@ -84,6 +88,10 @@ int main(int argc, char* argv[]) {
                 start_state = std::stoi(std::string{optarg});
                 args[3] = true;
                 break;
+            case 'a':
+                id = std::stoi(std::string{optarg});
+                args[4] = true;
+                break;
             default:
                 std::cerr << "Unknown argument!\n";
                 abort();
@@ -94,7 +102,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     marl::agent a;
-    a.initialize(problem_path, start_state);
+    a.initialize(problem_path, start_state, id);
     a.connect(host, port);
     a.start();
     a.wait();

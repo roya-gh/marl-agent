@@ -29,29 +29,69 @@
 
 marl::agent::agent():
     m_request_sequence{0} {
-
 }
 
-marl::action_select_rsp marl::agent::process_request(const action_select_req&) {
-}
-
-marl::response_base* marl::agent::process_action_select(const marl::request_base* const request) {
-    marl::action_select_rsp* rsp = new action_select_rsp();
-    rsp->agent_id = m_id;
-    rsp->request_number = request->request_number;
+marl::action_select_rsp marl::agent::process_request(const action_select_req& request) {
+    marl::action_select_rsp rsp;
+    rsp.agent_id = m_id;
+    rsp.request_number = request.request_number;
+    rsp.requester_id = request.agent_id;
     // Find what actions on requested state are present in current agents table
     for(const q_entry_t& entry : m_q_table) {
-        if(entry.state == request->state_id) {
+        if(entry.state == request.state_id) {
             action_info i;
             i.state = entry.state;
             i.action = entry.action;
             i.confidence = entry.confidence;
             i.q_value = entry.value;
-            rsp->info.push_back(i);
+            rsp.info.push_back(i);
         }
     }
     return rsp;
 }
+
+
+//marl::action_select_rsp marl::agent::process_request(const action_select_req& req) {
+//    action_select_rsp rsp;
+//    rsp.agent_id = m_id;
+//    rsp.request_number = req.request_number;
+//    rsp.requester_id = req.agent_id;
+
+//    // Fetch asker agent's state
+//    auto finder = [&](const state * s)->bool { return s->id() == req.state_id; };
+//    auto found_state_it = std::find_if(m_env.states().cbegin(), m_env.states().cend(), finder);
+//    state* found_state = *found_state_it;
+
+//    // Iterate over possible actions
+//    for(action* a : found_state->actions()) {
+//        action_info i;
+//        i.state = req.state_id;
+//        i.action = a->id();
+//        i.confidence = this->confidence(found_state, a);
+//        i.q_value = this->q(found_state, a);
+//        rsp.info.push_back(i);
+//    }
+
+//    return rsp;
+//}
+
+//marl::response_base* marl::agent::process_action_select(const marl::request_base* const request) {
+//    marl::action_select_rsp* rsp = new action_select_rsp();
+//    rsp->agent_id = m_id;
+//    rsp->request_number = request->request_number;
+//    // Find what actions on requested state are present in current agents table
+//    for(const q_entry_t& entry : m_q_table) {
+//        if(entry.state == request->state_id) {
+//            action_info i;
+//            i.state = entry.state;
+//            i.action = entry.action;
+//            i.confidence = entry.confidence;
+//            i.q_value = entry.value;
+//            rsp->info.push_back(i);
+//        }
+//    }
+//    return rsp;
+//}
 
 void marl::agent::set_ask_treshold(float value) {
     m_ask_treshold = value;
@@ -78,16 +118,18 @@ void marl::agent::run() {
         e.value = 0;
         m_q_table.push_back(e);
     }
+    // Initialize current state
+    m_current_state = m_env.states().at(m_start_index);
     // Run algorithm
-    while(m_is_running.load()) {
+    //while(m_is_running.load()) {
         // Ask other agents
         action_select_req r;
         r.agent_id = m_id;
         r.confidence = m_visits.at(m_current_state->id());
         r.request_number = (++m_request_sequence);
         r.state_id = m_current_state->id();
-        send_message<action_select_req>(r);
-    }
+        send_message(r);
+    //}
 }
 
 float marl::agent::q(marl::state* s, marl::action* a) const {
@@ -97,18 +139,18 @@ float marl::agent::q(marl::state* s, marl::action* a) const {
         return 0.0;
     }
     // Validate if action actually belongs to this state
-    bool found = std::any_of(s->actions().cbegin(),
-                             s->actions().cend(),
-    [&s, &a](const action*& aa)->bool {
+    auto finder = [&](action* aa)->bool {
         return aa->id() == a->id();
-    });
+    };
+    bool found = std::any_of(s->actions().cbegin(),
+                             s->actions().cend(), finder);
     if(!found) {
         l->log(flog::level_t::ERROR_, "Action can not be initiated from state!");
         return 0;
     }
     // Find Q-Value and return it.
     for(const q_entry_t& qe : m_q_table) {
-        if(qe.state == s->id(), qe.action == a->id()) {
+        if(qe.state == s->id() && qe.action == a->id()) {
             return qe.value;
         }
     }
@@ -119,7 +161,7 @@ float marl::agent::q(uint32_t s, uint32_t a) const {
     flog::logger* l = flog::logger::instance();
     // Find Q-Value and return it.
     for(const q_entry_t& qe : m_q_table) {
-        if(qe.state == s, qe.action == a) {
+        if(qe.state == s && qe.action == a) {
             return qe.value;
         }
     }
