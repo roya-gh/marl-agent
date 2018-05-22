@@ -20,7 +20,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-AM_CXXFLAGS = --pedantic -Wall -Werror
+AM_CXXFLAGS = --pedantic -Wall
 
 bin_PROGRAMS = marl-agent
 

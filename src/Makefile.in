@@ -299,7 +299,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
-AM_CXXFLAGS = --pedantic -Wall -Werror
+AM_CXXFLAGS = --pedantic -Wall
 marl_agent_CPPFLAGS = \
     $(MARL_PROTOCOLS_CFLAGS) \
     $(FLOG_CFLAGS) \

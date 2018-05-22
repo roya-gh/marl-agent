@@ -27,8 +27,10 @@
 #include <marl-protocols/action.hpp>
 #include <flog/flog.hpp>
 
-marl::agent::agent():
-    m_request_sequence{0} {
+marl::agent::agent(operation_mode_t mode, learning_mode_t lm):
+    m_request_sequence{0},
+    m_operation_mode{mode},
+    m_learning_mode{lm} {
 }
 
 marl::action_select_rsp marl::agent::process_request(const action_select_req& request) {
@@ -101,7 +103,45 @@ float marl::agent::ask_treshold() const {
     return m_ask_treshold;
 }
 
+uint32_t marl::agent::iterations() const {
+    return m_iterations;
+}
+
+void marl::agent::set_iterations(uint32_t i) {
+    m_iterations = i;
+}
+
 void marl::agent::run() {
+    switch(m_operation_mode) {
+        case operation_mode_t::multi:
+            learn_multi();
+            break;
+        case operation_mode_t::single:
+            run_single();
+            break;
+        default:
+            break;
+    }
+}
+
+void marl::agent::run_single() {
+    switch(m_learning_mode) {
+        case learning_mode_t::learn:
+            learn_single();
+            break;
+        case learning_mode_t::exploit:
+            exploit();
+            break;
+        default:
+            break;
+    }
+}
+
+void marl::agent::learn_single() {
+
+}
+
+void marl::agent::learn_multi() {
     // Initialize constants
     m_tau = 0.4;
     // Initialize visits
@@ -122,14 +162,18 @@ void marl::agent::run() {
     m_current_state = m_env.states().at(m_start_index);
     // Run algorithm
     //while(m_is_running.load()) {
-        // Ask other agents
-        action_select_req r;
-        r.agent_id = m_id;
-        r.confidence = m_visits.at(m_current_state->id());
-        r.request_number = (++m_request_sequence);
-        r.state_id = m_current_state->id();
-        send_message(r);
+    // Ask other agents
+    action_select_req r;
+    r.agent_id = m_id;
+    r.confidence = m_visits.at(m_current_state->id());
+    r.request_number = (++m_request_sequence);
+    r.state_id = m_current_state->id();
+    send_message(r);
     //}
+}
+
+void marl::agent::exploit() {
+
 }
 
 float marl::agent::q(marl::state* s, marl::action* a) const {
@@ -139,7 +183,7 @@ float marl::agent::q(marl::state* s, marl::action* a) const {
         return 0.0;
     }
     // Validate if action actually belongs to this state
-    auto finder = [&](action* aa)->bool {
+    auto finder = [&](action * aa)->bool {
         return aa->id() == a->id();
     };
     bool found = std::any_of(s->actions().cbegin(),

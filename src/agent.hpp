@@ -23,17 +23,35 @@
 #include <marl-protocols/state.hpp>
 
 namespace marl {
+
+enum class operation_mode_t {
+    single,
+    multi,
+};
+
+enum class learning_mode_t {
+    learn,
+    exploit,
+};
+
 class agent : public client_base {
 public:
-    agent();
+    agent(operation_mode_t op = operation_mode_t::multi,
+          learning_mode_t lm = learning_mode_t::learn);
     action_select_rsp process_request(const action_select_req&) override;
     //response_base* process_request(const request_base* const) override;
     //response_base* process_action_select(const request_base* const);
     //response_base* process_update_table(const request_base* const);
     void set_ask_treshold(float value);
     float ask_treshold() const;
+    uint32_t iterations() const;
+    void set_iterations(uint32_t);
 protected:
     void run() override;
+    void run_single();
+    void learn_single();
+    void learn_multi();
+    void exploit();
     // Helper functions
     float q(state* s, action* a) const;
     float q(uint32_t s, uint32_t a) const;
@@ -44,5 +62,8 @@ private:
     float m_tau;
     marl::state* m_current_state;
     uint32_t m_request_sequence;
+    operation_mode_t m_operation_mode;
+    learning_mode_t m_learning_mode;
+    uint32_t m_iterations;
 };
 }
