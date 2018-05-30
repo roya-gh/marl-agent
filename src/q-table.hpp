@@ -32,7 +32,6 @@ struct q_entry_t {
 };
 
 typedef std::pair<uint32_t /*state*/, uint32_t/*action*/> q_key;
-typedef std::vector<q_entry_t> qtable_t;
 typedef std::map<uint32_t, uint32_t> state_stats_t;
 
 }

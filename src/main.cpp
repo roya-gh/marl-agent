@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <bitset>
 #include <cstdint>
+#include <flog/flog.hpp>
 #include <getopt.h>
 #include <string.h>
 
@@ -68,7 +69,7 @@ static std::string usage_message =
     "                 File name to read learned policy from.\n"
     "                 Will be ignored on learning mode.\n"
     "  -h, --help\n"
-    "                 Prints this message.\n"
+    "                 Prints this message and exits.\n"
     ;
 
 void print_usage() {
@@ -219,10 +220,16 @@ int main(int argc, char* argv[]) {
             break;
     }
     marl::agent a;
+    a.initialize(operation_mode, learning_mode);
     a.initialize(problem_path, start_state, id);
-    a.connect(host, port);
+    if(operation_mode == marl::operation_mode_t::multi) {
+        a.connect(host, port);
+    }
+    a.set_iterations(iterations);
+    a.set_q_file_path(output_path);
     a.start();
     a.wait();
     a.stop();
+    flog::logger::instance()->flush(std::chrono::minutes{1});
     return 0;
 }

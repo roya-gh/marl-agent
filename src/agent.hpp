@@ -24,46 +24,39 @@
 
 namespace marl {
 
-enum class operation_mode_t {
-    single,
-    multi,
-};
-
-enum class learning_mode_t {
-    learn,
-    exploit,
-};
-
 class agent : public client_base {
 public:
-    agent(operation_mode_t op = operation_mode_t::multi,
-          learning_mode_t lm = learning_mode_t::learn);
+    agent();
     action_select_rsp process_request(const action_select_req&) override;
     //response_base* process_request(const request_base* const) override;
     //response_base* process_action_select(const request_base* const);
     //response_base* process_update_table(const request_base* const);
     void set_ask_treshold(float value);
     float ask_treshold() const;
-    uint32_t iterations() const;
-    void set_iterations(uint32_t);
+    void load_q_table();
+    void save_q_table();
+    void set_q_file_path(const std::string& path);
 protected:
+    void print_q_table();
     void run() override;
     void run_single();
     void learn_single();
     void learn_multi();
     void exploit();
     // Helper functions
-    float q(state* s, action* a) const;
+    float q(const state* s, const action* a) const;
     float q(uint32_t s, uint32_t a) const;
+    // Boltzmann distribution function for softmax selection
+    size_t boltzmann_d(const std::vector<float> values) const;
 private:
-    qtable_t m_q_table;
+    std::string m_q_file_path;
+    std::vector<q_entry_t> m_q_table;
     state_stats_t m_visits;
     float m_ask_treshold;
-    float m_tau;
+    float m_discount;           // gamma
+    float m_learning_rate;      // alpha
+    float m_learning_factor;    // tau
     marl::state* m_current_state;
     uint32_t m_request_sequence;
-    operation_mode_t m_operation_mode;
-    learning_mode_t m_learning_mode;
-    uint32_t m_iterations;
 };
 }
