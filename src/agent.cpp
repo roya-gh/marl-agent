@@ -57,49 +57,6 @@ marl::action_select_rsp marl::agent::process_request(const action_select_req& re
     return rsp;
 }
 
-
-//marl::action_select_rsp marl::agent::process_request(const action_select_req& req) {
-//    action_select_rsp rsp;
-//    rsp.agent_id = m_id;
-//    rsp.request_number = req.request_number;
-//    rsp.requester_id = req.agent_id;
-
-//    // Fetch asker agent's state
-//    auto finder = [&](const state * s)->bool { return s->id() == req.state_id; };
-//    auto found_state_it = std::find_if(m_env.states().cbegin(), m_env.states().cend(), finder);
-//    state* found_state = *found_state_it;
-
-//    // Iterate over possible actions
-//    for(action* a : found_state->actions()) {
-//        action_info i;
-//        i.state = req.state_id;
-//        i.action = a->id();
-//        i.confidence = this->confidence(found_state, a);
-//        i.q_value = this->q(found_state, a);
-//        rsp.info.push_back(i);
-//    }
-
-//    return rsp;
-//}
-
-//marl::response_base* marl::agent::process_action_select(const marl::request_base* const request) {
-//    marl::action_select_rsp* rsp = new action_select_rsp();
-//    rsp->agent_id = m_id;
-//    rsp->request_number = request->request_number;
-//    // Find what actions on requested state are present in current agents table
-//    for(const q_entry_t& entry : m_q_table) {
-//        if(entry.state == request->state_id) {
-//            action_info i;
-//            i.state = entry.state;
-//            i.action = entry.action;
-//            i.confidence = entry.confidence;
-//            i.q_value = entry.value;
-//            rsp->info.push_back(i);
-//        }
-//    }
-//    return rsp;
-//}
-
 void marl::agent::set_ask_treshold(float value) {
     m_ask_treshold = value;
 }
@@ -113,6 +70,18 @@ void marl::agent::set_q_file_path(const std::string& path) {
     if(m_learning_mode == learning_mode_t::exploit) {
         load_q_table();
     }
+}
+
+void marl::agent::set_learning_rate(float r) {
+    m_learning_rate = r;
+}
+
+void marl::agent::set_temperature(float f) {
+    m_temperature = f;
+}
+
+void marl::agent::set_discount_factor(float d) {
+    m_discount = d;
 }
 
 void marl::agent::load_q_table() {
@@ -156,7 +125,7 @@ void marl::agent::save_q_table() {
 void marl::agent::run() {
     switch(m_operation_mode) {
         case operation_mode_t::multi:
-            learn_multi();
+            run_multi();
             break;
         case operation_mode_t::single:
             run_single();
@@ -164,6 +133,7 @@ void marl::agent::run() {
         default:
             break;
     }
+    terminate();
 }
 
 void marl::agent::run_single() {
@@ -179,12 +149,15 @@ void marl::agent::run_single() {
     }
 }
 
+void marl::agent::run_multi() {
+    /* Running agent in multi-agent and exploit modes simulatenously does not
+     * make sense
+     */
+    learn_multi();
+}
+
 void marl::agent::learn_single() {
     flog::logger* l = flog::logger::instance();
-    // Initialize constants
-    m_learning_factor = 0.1;
-    m_learning_rate = 0.2;
-    m_discount = 0.9;
     // Initialize Q-Table
     for(const marl::action* a : m_env.actions()) {
         q_entry_t e;
@@ -194,32 +167,31 @@ void marl::agent::learn_single() {
         e.value = 0.5;
         m_q_table.push_back(e);
         for(transition* t : a->transitions()) {
-            l->log(flog::level_t::INFO, "From %d to %d reward is: %f",
+            l->log(flog::level_t::TRACE, "From %d to %d reward is: %f",
                    a->from()->id(), t->to()->id(), t->reward());
         }
     }
-    save_q_table();
     // Initialize current state
     m_current_state = m_env.states().at(m_start_index);
     // Run algorithm
     for(uint32_t i = 1; i <= m_iterations; ++i) {
-        l->log(flog::level_t::INFO, "Iteration %d starts..", i);
+        l->log(flog::level_t::TRACE, "Iteration %d starts..", i);
         // Compute action probabilities
-        l->logc(flog::level_t::INFO, "Current State: %d", m_current_state->id());
+        l->logc(flog::level_t::TRACE, "Current State: %d", m_current_state->id());
         std::vector<float> m_qs;
         for(const action* a : m_current_state->actions()) {
             m_qs.push_back(q(m_current_state, a));
         }
         size_t selection = boltzmann_d(m_qs);
         action* selected_action = m_current_state->actions().at(selection);
-        l->logc(flog::level_t::INFO, "Selected Action: %d", selected_action->id());
+        l->logc(flog::level_t::TRACE, "Selected Action: %d", selected_action->id());
         // Perform the move
         // TODO: Check for non-stattionary problems
         state* old_state = m_current_state;
         const transition* t = selected_action->transitions().at(0);
         m_current_state = t->to();
         float reward = t->reward();
-        l->logc(flog::level_t::INFO, "Observed Reward: %f", reward);
+        l->logc(flog::level_t::TRACE, "Observed Reward: %f", reward);
         // Find entry to update
         auto finder = [&selected_action, &old_state](const q_entry_t& e) {
             return e.action == selected_action->id()
@@ -236,14 +208,14 @@ void marl::agent::learn_single() {
         float max_q = 0;
         for(action* a : m_current_state->actions()) {
             float new_max = q(m_current_state, a);
-            //l->logc(flog::level_t::INFO, "New Max: %f", new_max);
+            //l->logc(flog::level_t::TRACE, "New Max: %f", new_max);
             max_q = (new_max > max_q) ? new_max : max_q;
         }
-        l->logc(flog::level_t::INFO, "Maximum Q: %f", max_q);
+        l->logc(flog::level_t::TRACE, "Maximum Q: %f", max_q);
         item->value = (1.0f - m_learning_rate) * q(old_state, selected_action)
                       + m_learning_rate * (reward + m_discount * max_q);
         item->confidence += 0.001;
-        l->logc(flog::level_t::INFO, "Updated Q(%d, %d): %f",
+        l->logc(flog::level_t::TRACE, "Updated Q(%d, %d): %f",
                 m_current_state->id(), selected_action->id(), item->value);
         print_q_table();
     }
@@ -251,8 +223,7 @@ void marl::agent::learn_single() {
 }
 
 void marl::agent::learn_multi() {
-    // Initialize constants
-    m_learning_factor = 0.4;
+    flog::logger* l = flog::logger::instance();
     // Initialize visits
     m_visits.clear();
     for(const marl::state* s : m_env.states()) {
@@ -271,19 +242,133 @@ void marl::agent::learn_multi() {
     m_current_state = m_env.states().at(m_start_index);
     // Run algorithm
     uint32_t i = 0;
+    //    l->log(flog::level_t::TRACE, "Iteration count: %d", m_iterations);
     while(m_is_running.load() && i < m_iterations) {
+        l->log(flog::level_t::TRACE, "Running episode: %d", i++);
         // Ask other agents
         action_select_req r;
         r.agent_id = m_id;
         r.confidence = m_visits.at(m_current_state->id());
         r.request_number = (++m_request_sequence);
         r.state_id = m_current_state->id();
+
+        this->set_rendezvous(r.request_number);
         send_message(r);
+        //        l->log(flog::level_t::TRACE,
+        //               "Waiting for response for request: %d", r.request_number);
+        std::unique_ptr<marl::response_base> r_base = this->get_response(r.request_number);
+        marl::action_select_rsp* response = dynamic_cast<marl::action_select_rsp*>(r_base.get());
+        if(!response) {
+            // TODO: error
+            continue;
+        }
+        // Sanity check
+        if(response->request_number != r.request_number) {
+            l->log(flog::level_t::ERROR_,
+                   "Requests does not match! %d!=%d",
+                   response->request_number, r.request_number);
+            // TODO: handle error
+            continue;
+        }
+        //        else {
+        //            l->log(flog::level_t::TRACE,
+        //                   "Responce received from server. Details: ");
+        //            l->logc(flog::level_t::TRACE,
+        //                    "Request Number: %d", response->request_number);
+        //            l->logc(flog::level_t::TRACE,
+        //                    "Size: %z", response->info.size());
+        //            for(const action_info& reply : response->info) {
+        //                l->logc(flog::level_t::TRACE,
+        //                        "Action: %d, State: %d, Confidence: %f, Q-Value: %f",
+        //                        reply.action, reply.confidence, reply.q_value, reply.state);
+        //            }
+        //        }
+        // perform action based on the reply
+        std::vector<action_info> concensus = aggregate_and_normalize(response->info);
+        std::vector<float> m_qs;
+        for(const action_info a : concensus) {
+            m_qs.push_back(a.q_value);
+        }
+        size_t selection = boltzmann_d(m_qs);
+        //        l->log(flog::level_t::INFO, "Boltzman: %zd of %zd",
+        //               selection, concensus.size());
+        uint32_t action_id = concensus.at(selection).action;
+        action* selected_action = nullptr;
+        for(action* a  : m_current_state->actions()) {
+            if(a->id() == action_id) {
+                selected_action = a;
+                break;
+            }
+        }
+        if(!selected_action) {
+            // TODO check for error source,
+            continue;
+        }
+        // perform actual action
+        l->logc(flog::level_t::TRACE, "Selected Action: %d", selected_action->id());
+        state* old_state = m_current_state;
+        const transition* t = selected_action->transitions().at(0);
+        m_current_state = t->to();
+        float reward = t->reward();
+        l->logc(flog::level_t::TRACE, "Observed Reward: %f", reward);
+        // Find entry to update
+        auto finder = [&selected_action, &old_state](const q_entry_t& e) {
+            return e.action == selected_action->id()
+                   && e.state == old_state->id();
+        };
+        // Update Q Table
+        auto item = std::find_if(m_q_table.begin(), m_q_table.end(),
+                                 finder);
+        if(item == m_q_table.end()) {
+            l->log(flog::level_t::ERROR_, "Invalid or incomplete Q-Table!");
+            break;
+        }
+        // calculate max_q for current state (which is after move)
+        float max_q = 0;
+        for(action* a : m_current_state->actions()) {
+            float new_max = q(m_current_state, a);
+            l->logc(flog::level_t::TRACE, "New Max: %f", new_max);
+            max_q = (new_max > max_q) ? new_max : max_q;
+        }
+        //        l->logc(flog::level_t::TRACE, "Maximum Q: %f", max_q);
+        item->value = (1.0f - m_learning_rate) * q(old_state, selected_action)
+                      + m_learning_rate * (reward + m_discount * max_q);
+        item->confidence += 0.1;
+        l->logc(flog::level_t::TRACE, "Updated Q(%d, %d): %f",
+                m_current_state->id(), selected_action->id(), item->value);
     }
+    save_q_table();
 }
 
 void marl::agent::exploit() {
 
+}
+
+float marl::agent::c(const marl::state* s, const marl::action* a) const {
+    flog::logger* l = flog::logger::instance();
+    if(!s || !a) {
+        l->log(flog::level_t::ERROR_, "Invalid state or action pointer!");
+        return 0.0;
+    }
+    // Validate if action actually belongs to this state
+    auto finder = [&](action * aa)->bool {
+        return aa->id() == a->id();
+    };
+    bool found = std::any_of(s->actions().cbegin(),
+                             s->actions().cend(), finder);
+    if(!found) {
+        l->log(flog::level_t::ERROR_, "Action can not be initiated from state!");
+        return 0;
+    }
+    // Find confidence and return it.
+    for(const q_entry_t& qe : m_q_table) {
+        if(qe.state == s->id() && qe.action == a->id()) {
+            return qe.confidence;
+        }
+    }
+    l->log(flog::level_t::ERROR_, "Can not find Q-Value for %d and %d!",
+           s->id(), a->id());
+    return 0;
 }
 
 float marl::agent::q(const state* s, const marl::action* a) const {
@@ -326,7 +411,7 @@ float marl::agent::q(uint32_t s, uint32_t a) const {
     return 0;
 }
 
-size_t marl::agent::boltzmann_d(const std::vector<float> values) const {
+size_t marl::agent::boltzmann_d(const std::vector<float>& values) const {
     static std::random_device rd;
     static std::mt19937 e2(rd());
     static std::uniform_real_distribution<> dist(0, 1);
@@ -336,34 +421,79 @@ size_t marl::agent::boltzmann_d(const std::vector<float> values) const {
     std::vector<float> probabilites;
     float total = 0.0;
     for(float value : values) {
-        total += exp(value / m_learning_factor);
+        total += exp(value / m_temperature);
     }
     for(float value : values) {
-        const float p = exp(value / m_learning_factor) / total;
+        const float p = exp(value / m_temperature) / total;
         probabilites.push_back(p);
     }
     float rand = dist(e2);
-    //    l->log(flog::level_t::INFO, "Input size: %zd", values.size());
-    //    l->logc(flog::level_t::INFO, "Random seed: %f", rand);
+    l->log(flog::level_t::TRACE, "Input size: %zd", values.size());
+    l->logc(flog::level_t::TRACE, "Random seed: %f", rand);
     float max_p = 0;
     size_t selected = 0;
+
     for(float value : probabilites) {
         max_p += value;
-        //        l->logc(flog::level_t::INFO, "Value= %f, Max(P)=%f", value, max_p);
+        // l->logc(flog::level_t::TRACE, "Value= %f, Max(P)=%f", value, max_p);
         if(rand < max_p) {
             break;
         } else {
             selected++;
         }
     }
+    if(selected >= values.size()) {
+        selected = 0;
+    }
+    /*
     std::stringstream ss;
     ss << values;
-    //    l->logc(flog::level_t::INFO, "   input: %s", ss.str().c_str());
+    l->logc(flog::level_t::INFO, "   input: %s", ss.str().c_str());
     ss.str("");
     ss << probabilites;
-    //    l->logc(flog::level_t::INFO, "P vector: %s", ss.str().c_str());
+    l->logc(flog::level_t::INFO, "P vector: %s", ss.str().c_str());
     ss.str("");
-    //    l->logc(flog::level_t::INFO, "Selected: %zd", selected);
-    //    l->logc(flog::level_t::INFO, "Selected: (%f)", values.at(selected));
+    l->logc(flog::level_t::INFO, "Selected: %zd", selected);
+    l->logc(flog::level_t::INFO, "Selected: (%f)", values.at(selected));
+    */
     return selected;
+}
+
+
+std::vector<marl::action_info> marl::agent::aggregate_and_normalize(const std::vector<marl::action_info>& v) {
+    std::vector<marl::action_info> r;
+    for(const action_info& i : v) {
+        auto finder =
+        [&i](const action_info & item) -> bool {
+            return item.action == i.action;
+        };
+        auto found = std::find_if(r.begin(), r.end(), finder);
+        if(found == r.end()) {
+            action_info first = i;
+            first.q_value = first.confidence * first.q_value;
+            r.push_back(first);
+        } else {
+            found->q_value += i.confidence * i.q_value;
+            found->confidence += i.confidence;
+        }
+    }
+    // TODO: remove actions which are not accepted in current state
+    // add self-opinion on the consensus
+    for(action* a : m_current_state->actions()) {
+        for(action_info& ai : r) {
+            if(ai.action == a->id()) {
+                ai.confidence += c(m_current_state, a) ;
+                ai.q_value += c(m_current_state, a) * q(m_current_state, a);
+            }
+        }
+    }
+    // normalize
+    for(action_info& ai : r) {
+        if(ai.confidence != 0.0) {
+            ai.q_value = ai.q_value / ai.confidence;
+        } else {
+            ai.q_value = 0.0;
+        }
+    }
+    return r;
 }

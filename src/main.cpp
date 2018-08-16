@@ -59,15 +59,55 @@ static std::string usage_message =
     "                 learning mode is \"exploit\" then '--policy-input' parameter\n"
     "                 must be set.\n"
     "                 Default mode is \"learn\".\n"
-    "  -n N, --iterations=N\n"
-    "                 Number of iterations in learning stage.\n"
+    "  -n N, --episodes=N\n"
+    "                 Number of episodes in learning stage.\n"
     "                 will be ignored on exploit mode.\n"
+    "  -r N, --learning-rate=N\n"
+    "                 The learning rate or step size determines to what extent newly\n"
+    "                 acquired information overrides old information. A factor of 0\n"
+    "                 makes the agent learn nothing (exclusively exploiting prior\n"
+    "                 knowledge), while a factor of 1 makes the agent consider only\n"
+    "                 the most recent information (ignoring prior knowledge to\n"
+    "                 explore possibilities).\n"
+    "                 You must provide a number between 0 and 1.\n"
+    "                 Default value is: `0.01'.\n"
+    "  -d N, --discount-factor=N\n"
+    "                 The discount factor determines the importance of future rewards.\n"
+    "                 A factor of 0 will make the agent \"myopic\" (or short-sighted)\n"
+    "                 by only considering current rewards, while a factor approaching\n"
+    "                 1 will make it strive for a long-term high reward.\n"
+    "                 You must provide a number between 0 and 1.\n"
+    "                 Default value is: `0.5'.\n"
+    "  -t N, --temperature=N\n"
+    "                 Temperature of the Boltzmann distribution used to decide which \n"
+    "                 action to perform amongst possibilities.\n"
+    "                 A factor of 0 will make the agent \"greedy\" by only considering\n"
+    "                 best looking actions. The higher values will make the agent"
+    "                 \"adventurer\" that is no matter what the learned experience"
+    "                 suggests, the agent will likely perform random actions.\n"
+    "                 You must provide a number between 0 and infinity.\n"
+    "                 Default value is: `50'.\n"
     "  -o PATH, --policy-output=PATH\n"
     "                 File name to write learned policy to.\n"
     "                 Will be ignored on exploit mode.\n"
     "  -i PATH, --policy-input=PATH\n"
     "                 File name to read learned policy from.\n"
     "                 Will be ignored on learning mode.\n"
+    "  -v N, --log-level=N\n"
+    "                 Verbosity level of the output. Possible values are:\n"
+    "                   0 (OFF): Turns off logging.\n"
+    "                   1 (FATAL): Logs very severe error events that will presumably\n"
+    "                              lead the application to abort\n"
+    "                   2 (ERROR): Logs error events that might still allow the\n"
+    "                              application to continue running.\n"
+    "                   3 (WARN):  Logs potentially harmful situations.\n"
+    "                   4 (INFO):  Logs informational messages that highlight the\n"
+    "                              progress of the application at coarse-grained\n"
+    "                              level.\n"
+    "                   6 (TRACE): Logs finer-grained informational events than the\n"
+    "                              DEBUG\n"
+    "                   7 (ALL):   Logs all events.\n"
+    "                 Default value is: `7' (ALL).\n"
     "  -h, --help\n"
     "                 Prints this message and exits.\n"
     ;
@@ -85,12 +125,16 @@ int main(int argc, char* argv[]) {
     std::string output_path;
     uint32_t start_state = 0;
     uint32_t id = 0;
-    uint32_t iterations = 0;
+    uint32_t episodes = 0;
+    flog::level_t log_level = flog::level_t::ALL;
+    float learning_rate = 0.01;
+    float temperature = 50;
+    float discount_factor = 0.5;
     marl::learning_mode_t learning_mode = marl::learning_mode_t::learn;
     marl::operation_mode_t operation_mode = marl::operation_mode_t::single;
     int c;
     std::map<char, bool> set_arguments;
-    char all_args[] = "hSPpasmlnoi";
+    char all_args[] = "hSPpasmlnoirtdv";
     for(size_t i = 0; i < strlen(all_args); ++i) {
         set_arguments[all_args[i]] = false;
     }
@@ -102,15 +146,19 @@ int main(int argc, char* argv[]) {
             {"problem",  required_argument, 0, 'p'},
             {"agent-id", required_argument, 0, 'a'},
             {"start",    required_argument, 0, 's'},
+            {"episodes",     required_argument, 0, 'n'},
             {"operation-mode", required_argument, 0, 'm'},
             {"learning-mode",  required_argument, 0, 'l'},
-            {"iterations",     required_argument, 0, 'n'},
             {"policy-output",  required_argument, 0, 'o'},
             {"policy-input",   required_argument, 0, 'i'},
+            {"learning-rate",   required_argument, 0, 'r'},
+            {"temperature",   required_argument, 0, 't'},
+            {"discount-factor",   required_argument, 0, 'd'},
+            {"log-level",   required_argument, 0, 'v'},
             {0, 0, 0, 0}
         };
         int option_index = 0;
-        c = getopt_long(argc, argv, "hS:P:p:a:s:m:l:n:o:i", long_options, &option_index);
+        c = getopt_long(argc, argv, "hS:P:p:a:s:m:l:n:o:i:r:t:d:v:", long_options, &option_index);
         if(c == -1) {
             break;
         }
@@ -155,8 +203,14 @@ int main(int argc, char* argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 break;
-            case 'n':
-                iterations = std::stoi(std::string{optarg});
+            case 'r':
+                learning_rate = std::stof(std::string{optarg});
+                break;
+            case 't':
+                temperature = std::stof(std::string{optarg});
+                break;
+            case 'd':
+                discount_factor = std::stof(std::string{optarg});
                 break;
             case 'o':
                 output_path = std::string{optarg};
@@ -164,8 +218,15 @@ int main(int argc, char* argv[]) {
             case 'i':
                 input_path = std::string{optarg};
                 break;
+            case 'n':
+                episodes = std::stoi(std::string{optarg});
+                break;
+            case 'v':
+                log_level = static_cast<flog::level_t>(std::stoi(std::string{optarg}));
+                flog::logger::instance()->set_level(log_level);
+                break;
             default:
-                std::cerr << "Unknown argument!\n";
+                std::cerr << "Unknown argument: " << (char)c << ',' << optarg << '\n';
                 exit(EXIT_FAILURE);
         }
     }
@@ -206,7 +267,7 @@ int main(int argc, char* argv[]) {
                 exit(EXIT_FAILURE);
             }
             if(!set_arguments.at('n')) {
-                std::cerr << "ERROR: Iteration Count must be specified! (-n, --iterations)\n";
+                std::cerr << "ERROR: Iteration Count must be specified! (-n, --episodes)\n";
                 exit(EXIT_FAILURE);
             }
             break;
@@ -222,14 +283,16 @@ int main(int argc, char* argv[]) {
     marl::agent a;
     a.initialize(operation_mode, learning_mode);
     a.initialize(problem_path, start_state, id);
+    a.set_learning_rate(learning_rate);
+    a.set_temperature(temperature);
+    a.set_discount_factor(discount_factor);
     if(operation_mode == marl::operation_mode_t::multi) {
         a.connect(host, port);
     }
-    a.set_iterations(iterations);
+    a.set_iterations(episodes);
     a.set_q_file_path(output_path);
     a.start();
     a.wait();
-    a.stop();
     flog::logger::instance()->flush(std::chrono::minutes{1});
     return 0;
 }

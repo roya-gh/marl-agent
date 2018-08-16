@@ -36,26 +36,33 @@ public:
     void load_q_table();
     void save_q_table();
     void set_q_file_path(const std::string& path);
+    void set_learning_rate(float);
+    void set_temperature(float);
+    void set_discount_factor(float);
 protected:
     void print_q_table();
     void run() override;
     void run_single();
+    void run_multi();
     void learn_single();
     void learn_multi();
     void exploit();
     // Helper functions
+    float c(const state* s, const action* a) const;
     float q(const state* s, const action* a) const;
     float q(uint32_t s, uint32_t a) const;
     // Boltzmann distribution function for softmax selection
-    size_t boltzmann_d(const std::vector<float> values) const;
+    size_t boltzmann_d(const std::vector<float> &values) const;
 private:
+    std::vector<action_info> aggregate_and_normalize(const std::vector<action_info>& v);
+
     std::string m_q_file_path;
     std::vector<q_entry_t> m_q_table;
     state_stats_t m_visits;
     float m_ask_treshold;
     float m_discount;           // gamma
     float m_learning_rate;      // alpha
-    float m_learning_factor;    // tau
+    float m_temperature;        // tau
     marl::state* m_current_state;
     uint32_t m_request_sequence;
 };
