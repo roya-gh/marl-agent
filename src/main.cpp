@@ -93,6 +93,8 @@ static std::string usage_message =
     "  -i PATH, --policy-input=PATH\n"
     "                 File name to read learned policy from.\n"
     "                 Will be ignored on learning mode.\n"
+    "  -x PATH, --stats-file=PATH\n"
+    "                 File name to write eisodes statistics into.\n"
     "  -v N, --log-level=N\n"
     "                 Verbosity level of the output. Possible values are:\n"
     "                   0 (OFF): Turns off logging.\n"
@@ -123,6 +125,7 @@ int main(int argc, char* argv[]) {
     std::string problem_path;
     std::string input_path;
     std::string output_path;
+    std::string stats_path;
     uint32_t start_state = 0;
     uint32_t id = 0;
     uint32_t episodes = 0;
@@ -155,10 +158,11 @@ int main(int argc, char* argv[]) {
             {"temperature",   required_argument, 0, 't'},
             {"discount-factor",   required_argument, 0, 'd'},
             {"log-level",   required_argument, 0, 'v'},
+            {"stats-file",   required_argument, 0, 'x'},
             {0, 0, 0, 0}
         };
         int option_index = 0;
-        c = getopt_long(argc, argv, "hS:P:p:a:s:m:l:n:o:i:r:t:d:v:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hS:P:p:a:s:m:l:n:o:i:r:t:d:v:x:", long_options, &option_index);
         if(c == -1) {
             break;
         }
@@ -176,6 +180,9 @@ int main(int argc, char* argv[]) {
                 break;
             case 'p':
                 problem_path = std::string{optarg};
+                break;
+            case 'x':
+                stats_path = std::string{optarg};
                 break;
             case 's':
                 start_state = std::stoi(std::string{optarg});
@@ -286,6 +293,7 @@ int main(int argc, char* argv[]) {
     a.set_learning_rate(learning_rate);
     a.set_temperature(temperature);
     a.set_discount_factor(discount_factor);
+    a.set_stats_file(stats_path);
     if(operation_mode == marl::operation_mode_t::multi) {
         a.connect(host, port);
     }

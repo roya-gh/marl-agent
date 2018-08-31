@@ -36,6 +36,7 @@ public:
     void load_q_table();
     void save_q_table();
     void set_q_file_path(const std::string& path);
+    void set_stats_file(const std::string& path);
     void set_learning_rate(float);
     void set_temperature(float);
     void set_discount_factor(float);
@@ -57,6 +58,7 @@ private:
     std::vector<action_info> aggregate_and_normalize(const std::vector<action_info>& v);
 
     std::string m_q_file_path;
+    std::string m_stats_file_path;
     std::vector<q_entry_t> m_q_table;
     state_stats_t m_visits;
     float m_ask_treshold;

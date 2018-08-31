@@ -34,6 +34,16 @@
 #include "prettyprint.hpp"
 #include "agent.hpp"
 
+#ifdef __DBL_DECIMAL_DIG__
+#define OP_DBL_DIGS (__DBL_DECIMAL_DIG__)
+#else
+#ifdef __DECIMAL_DIG__
+#define OP_DBL_DIGS (__DECIMAL_DIG__)
+#else
+#define OP_DBL_DIGS (__DBL_DIG__ + 3)
+#endif
+#endif
+
 marl::agent::agent():
     m_request_sequence{0} {
 }
@@ -70,6 +80,10 @@ void marl::agent::set_q_file_path(const std::string& path) {
     if(m_learning_mode == learning_mode_t::exploit) {
         load_q_table();
     }
+}
+
+void marl::agent::set_stats_file(const std::string& path) {
+    m_stats_file_path = path;
 }
 
 void marl::agent::set_learning_rate(float r) {
@@ -115,6 +129,7 @@ void marl::agent::save_q_table() {
     std::ofstream myfile;
     myfile.open(m_q_file_path, std::ios_base::out);
     myfile << "#State\tAction\tValue\tConfidence\n";
+    myfile << std::setprecision(std::numeric_limits<double>::digits10 + 1) << std::fixed;
     for(const q_entry_t& e : m_q_table) {
         myfile << e.state << '\t' << e.action << '\t'
                << e.value << '\t' << e.confidence << '\n';
@@ -158,24 +173,38 @@ void marl::agent::run_multi() {
 
 void marl::agent::learn_single() {
     flog::logger* l = flog::logger::instance();
+    // Initialize random engine
+    static std::random_device r;
+    static std::default_random_engine e1(r());
+    static std::uniform_int_distribution<int> uniform_dist(0, m_env.states().size() - 1);
     // Initialize Q-Table
     for(const marl::action* a : m_env.actions()) {
         q_entry_t e;
         e.action = a->id();
         e.state = a->from()->id();
         e.confidence = 0;
-        e.value = 0.5;
+        e.value = 0.0;
         m_q_table.push_back(e);
         for(transition* t : a->transitions()) {
             l->log(flog::level_t::TRACE, "From %d to %d reward is: %f",
                    a->from()->id(), t->to()->id(), t->reward());
         }
     }
-    // Initialize current state
-    m_current_state = m_env.states().at(m_start_index);
+    // Initialize current state to a random number
+    if(m_start_index == -1) {
+        m_current_state = m_env.states().at(uniform_dist(e1));
+    } else {
+        m_current_state = m_env.states().at(m_start_index);
+    }
+    // Open Statistics File
+    std::ofstream stat_file;
+    stat_file.open(m_stats_file_path, std::ios_base::out | std::ios_base::trunc);
+    stat_file << "#Episode Steps\n";
     // Run algorithm
-    for(uint32_t i = 1; i <= m_iterations; ++i) {
-        l->log(flog::level_t::TRACE, "Iteration %d starts..", i);
+    uint32_t episode = 1;
+    uint32_t step = 0;
+    while(episode < m_iterations) {
+        l->log(flog::level_t::TRACE, "Running step: %d", step++);
         // Compute action probabilities
         l->logc(flog::level_t::TRACE, "Current State: %d", m_current_state->id());
         std::vector<float> m_qs;
@@ -217,13 +246,32 @@ void marl::agent::learn_single() {
         item->confidence += 0.001;
         l->logc(flog::level_t::TRACE, "Updated Q(%d, %d): %f",
                 m_current_state->id(), selected_action->id(), item->value);
-        print_q_table();
+        //print_q_table();
+        if(reward == 1.0) {
+            l->log(flog::level_t::INFO, "Episode: %d Value: %d", episode, step);
+            stat_file << std::setprecision(17);
+            stat_file << std::setprecision(17) << std::fixed << episode << ' ' << step << '\n';
+            if(episode % 100 == 0) {
+                stat_file.flush();
+            }
+            episode++;
+            step = 0;
+            l->log(flog::level_t::INFO, "Goal reached. Trying a new state.");
+            m_current_state = m_env.states().at(uniform_dist(e1));
+            l->log(flog::level_t::INFO, "New state is: %d.", m_current_state->id());
+            // print_q_table();
+        }
     }
+    stat_file.close();
     save_q_table();
 }
 
 void marl::agent::learn_multi() {
     flog::logger* l = flog::logger::instance();
+    // Initialize random engine
+    static std::random_device r;
+    static std::default_random_engine e1(r());
+    static std::uniform_int_distribution<int> uniform_dist(0, m_env.states().size() - 1);
     // Initialize visits
     m_visits.clear();
     for(const marl::state* s : m_env.states()) {
@@ -238,13 +286,24 @@ void marl::agent::learn_multi() {
         e.value = 0;
         m_q_table.push_back(e);
     }
-    // Initialize current state
-    m_current_state = m_env.states().at(m_start_index);
+    // Initialize current state to a random number
+    if(m_start_index == -1) {
+        m_current_state = m_env.states().at(uniform_dist(e1));
+    } else {
+        m_current_state = m_env.states().at(m_start_index);
+    }
+    l->log(flog::level_t::INFO, "Starting at state: %d", m_current_state->id());
     // Run algorithm
-    uint32_t i = 0;
-    //    l->log(flog::level_t::TRACE, "Iteration count: %d", m_iterations);
-    while(m_is_running.load() && i < m_iterations) {
-        l->log(flog::level_t::TRACE, "Running episode: %d", i++);
+    uint32_t episode = 1;
+    uint32_t step = 0;
+    l->log(flog::level_t::TRACE, "Iteration count: %d", m_iterations);
+    // Open Statistics File
+    std::ofstream stat_file;
+    stat_file.open(m_stats_file_path, std::ios_base::out | std::ios_base::trunc);
+    stat_file << "#Episode Steps\n";
+
+    while(m_is_running.load() && episode < m_iterations) {
+        l->log(flog::level_t::TRACE, "Running episode: %d", step++);
         // Ask other agents
         action_select_req r;
         r.agent_id = m_id;
@@ -269,22 +328,39 @@ void marl::agent::learn_multi() {
                    response->request_number, r.request_number);
             // TODO: handle error
             continue;
+        } else {
+            l->log(flog::level_t::TRACE,
+                   "Responce received from server. Details: ");
+            l->logc(flog::level_t::TRACE,
+                    "Request Number: %d", response->request_number);
+            l->logc(flog::level_t::TRACE,
+                    "Size: %z", response->info.size());
+            for(const action_info& reply : response->info) {
+                l->logc(flog::level_t::TRACE,
+                        "Action: %d, State: %d, Confidence: %f, Q-Value: %f",
+                        reply.action, reply.confidence, reply.q_value, reply.state);
+            }
         }
-        //        else {
-        //            l->log(flog::level_t::TRACE,
-        //                   "Responce received from server. Details: ");
-        //            l->logc(flog::level_t::TRACE,
-        //                    "Request Number: %d", response->request_number);
-        //            l->logc(flog::level_t::TRACE,
-        //                    "Size: %z", response->info.size());
-        //            for(const action_info& reply : response->info) {
-        //                l->logc(flog::level_t::TRACE,
-        //                        "Action: %d, State: %d, Confidence: %f, Q-Value: %f",
-        //                        reply.action, reply.confidence, reply.q_value, reply.state);
-        //            }
-        //        }
+        for(const action* a : m_current_state->actions()) {
+            action_info i;
+            i.action = a->id();
+            i.state = m_current_state->id();
+            i.q_value = q(m_current_state->id(), a->id());
+            i.confidence = c(m_current_state, a);
+            response->info.push_back(i);
+        }
         // perform action based on the reply
         std::vector<action_info> concensus = aggregate_and_normalize(response->info);
+        // Update Q-Table based on new information
+        for(q_entry_t& e: m_q_table) {
+            for(action_info& a: concensus) {
+                if(e.action == a.action) {
+                    e.value = a.q_value;
+                    break;
+                }
+            }
+        }
+
         std::vector<float> m_qs;
         for(const action_info a : concensus) {
             m_qs.push_back(a.q_value);
@@ -336,7 +412,21 @@ void marl::agent::learn_multi() {
         item->confidence += 0.1;
         l->logc(flog::level_t::TRACE, "Updated Q(%d, %d): %f",
                 m_current_state->id(), selected_action->id(), item->value);
+        if(reward == 1.0) {
+            l->log(flog::level_t::INFO, "Episode: %d Value: %d", episode, step);
+            stat_file << episode << ' ' << step << '\n';
+            if(episode % 100 == 0) {
+                stat_file.flush();
+            }
+            episode++;
+            step = 0;
+            l->log(flog::level_t::INFO, "Goal reached. Trying a new state.");
+            m_current_state = m_env.states().at(uniform_dist(e1));
+            l->log(flog::level_t::INFO, "New state is: %d.", m_current_state->id());
+            // print_q_table();
+        }
     }
+    stat_file.close();
     save_q_table();
 }
 
@@ -435,15 +525,15 @@ size_t marl::agent::boltzmann_d(const std::vector<float>& values) const {
 
     for(float value : probabilites) {
         max_p += value;
-        // l->logc(flog::level_t::TRACE, "Value= %f, Max(P)=%f", value, max_p);
-        if(rand < max_p) {
+        l->logc(flog::level_t::TRACE, "Value= %f, Max(P)=%f", value, max_p);
+        if(rand <= max_p) {
             break;
         } else {
             selected++;
         }
     }
     if(selected >= values.size()) {
-        selected = 0;
+        selected = values.size() - 1;
     }
     /*
     std::stringstream ss;
